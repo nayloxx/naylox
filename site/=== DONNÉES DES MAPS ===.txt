@@ -1,0 +1,224 @@
+// === DONNÉES DES MAPS ===
+const mapsData = [
+    { id: 1, name: 'New York', city: 'USA', flag: '🗽', players: '12.4k', color: '#f7971e', locked: false },
+    { id: 2, name: 'Tokyo', city: 'Japon', flag: '🇯🇵', players: '9.8k', color: '#ff6b6b', locked: false },
+    { id: 3, name: 'Paris', city: 'France', flag: '🇫🇷', players: '8.5k', color: '#ffd93d', locked: false },
+    { id: 4, name: 'Londres', city: 'UK', flag: '🇬🇧', players: '7.2k', color: '#6c5ce7', locked: false },
+    { id: 5, name: 'Rio', city: 'Brésil', flag: '🇧🇷', players: '5.6k', color: '#00b894', locked: false },
+    { id: 6, name: 'Le Caire', city: 'Égypte', flag: '🇪🇬', players: '4.3k', color: '#fdcb6e', locked: false },
+    { id: 7, name: 'Moscou', city: 'Russie', flag: '🇷🇺', players: '3.8k', color: '#e17055', locked: true },
+    { id: 8, name: 'Sydney', city: 'Australie', flag: '🇦🇺', players: '3.1k', color: '#00cec9', locked: true }
+];
+
+// === ÉTAT ===
+let state = {
+    totalScore: parseInt(localStorage.getItem('nayloxTotalScore')) || 0,
+    highScore: parseInt(localStorage.getItem('nayloxHighScore')) || 0,
+    timerRunning: false,
+    timerInterval: null,
+    hours: 0,
+    minutes: 0,
+    seconds: 0
+};
+
+// === ÉLÉMENTS DOM ===
+const homeScreen = document.getElementById('homeScreen');
+const mapPage = document.getElementById('mapPage');
+const mapsContainer = document.getElementById('mapsContainer');
+const totalScoreEl = document.getElementById('totalScore');
+const totalHighScoreEl = document.getElementById('totalHighScore');
+const mapFlag = document.getElementById('mapFlag');
+const mapName = document.getElementById('mapName');
+
+// === AFFICHER LES MAPS ===
+function renderMaps() {
+    mapsContainer.innerHTML = '';
+    mapsData.forEach(map => {
+        const card = document.createElement('div');
+        card.className = `map-card${map.locked ? ' locked' : ''}`;
+        card.innerHTML = `
+            <span class="map-flag">${map.flag}</span>
+            <div class="map-name">${map.name}</div>
+            <div class="map-city">${map.city}</div>
+            <div class="map-players">👥 ${map.players}</div>
+            ${!map.locked ? '<span class="play-badge">▶ JOUER</span>' : ''}
+        `;
+        if (!map.locked) {
+            card.addEventListener('click', () => openMap(map));
+        }
+        mapsContainer.appendChild(card);
+    });
+    updateScoreDisplay();
+}
+
+// === OUVRIR UNE MAP (comme RandomKZN) ===
+function openMap(map) {
+    // Mettre à jour les infos
+    mapFlag.textContent = map.flag;
+    mapName.textContent = map.name;
+    
+    // Réinitialiser le chrono
+    resetTimer();
+    
+    // Changer la couleur de fond
+    document.getElementById('bgColorPicker').value = map.color || '#0f0c29';
+    document.body.style.background = map.color || '#0f0c29';
+    
+    // Simuler un chargement (comme RandomKZN)
+    simulateLoading();
+    
+    // Afficher la page
+    homeScreen.style.display = 'none';
+    mapPage.style.display = 'flex';
+    
+    // Incrémenter le score
+    state.totalScore += 1;
+    localStorage.setItem('nayloxTotalScore', state.totalScore);
+    updateScoreDisplay();
+}
+
+// === SIMULER UN CHARGEMENT (comme sur RandomKZN) ===
+function simulateLoading() {
+    const progress = document.getElementById('loadingProgress');
+    const text = document.getElementById('loadingText');
+    const size = document.getElementById('loadingSize');
+    let current = 0;
+    const total = 42; // 42MB comme sur RandomKZN
+    
+    progress.style.width = '0%';
+    text.textContent = '0%';
+    size.textContent = '0MB';
+    
+    const interval = setInterval(() => {
+        current += Math.random() * 3 + 1;
+        if (current >= total) {
+            current = total;
+            clearInterval(interval);
+        }
+        const percent = Math.round((current / total) * 100);
+        progress.style.width = percent + '%';
+        text.textContent = percent + '%';
+        size.textContent = current.toFixed(1) + 'MB';
+    }, 100);
+}
+
+// === CHRONOMÈTRE ===
+function updateTimerDisplay() {
+    document.getElementById('hours').textContent = String(state.hours).padStart(2, '0');
+    document.getElementById('minutes').textContent = String(state.minutes).padStart(2, '0');
+    document.getElementById('seconds').textContent = String(state.seconds).padStart(2, '0');
+}
+
+function startTimer() {
+    if (state.timerRunning) return;
+    state.timerRunning = true;
+    document.getElementById('startTimer').textContent = '⏸';
+    state.timerInterval = setInterval(() => {
+        state.seconds++;
+        if (state.seconds >= 60) {
+            state.seconds = 0;
+            state.minutes++;
+            if (state.minutes >= 60) {
+                state.minutes = 0;
+                state.hours++;
+            }
+        }
+        updateTimerDisplay();
+    }, 1000);
+}
+
+function pauseTimer() {
+    clearInterval(state.timerInterval);
+    state.timerInterval = null;
+    state.timerRunning = false;
+    document.getElementById('startTimer').textContent = '▶';
+}
+
+function resetTimer() {
+    pauseTimer();
+    state.hours = 0;
+    state.minutes = 0;
+    state.seconds = 0;
+    updateTimerDisplay();
+    document.getElementById('startTimer').textContent = '▶';
+}
+
+// === ÉVÉNEMENTS CHRONO ===
+document.getElementById('startTimer').addEventListener('click', () => {
+    if (state.timerRunning) {
+        pauseTimer();
+    } else {
+        startTimer();
+    }
+});
+
+document.getElementById('resetTimer').addEventListener('click', resetTimer);
+
+// === RACCOURCIS CLAVIER ===
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'q' || e.key === 'Q') {
+        document.getElementById('startTimer').click();
+    }
+    if (e.key === 'r' || e.key === 'R') {
+        document.getElementById('resetTimer').click();
+    }
+});
+
+// === PARAMÈTRES ===
+document.getElementById('toggleSettings').addEventListener('click', () => {
+    const body = document.getElementById('settingsBody');
+    if (body.style.display === 'none') {
+        body.style.display = 'grid';
+        document.getElementById('toggleSettings').textContent = '✕';
+    } else {
+        body.style.display = 'none';
+        document.getElementById('toggleSettings').textContent = '▼';
+    }
+});
+
+// Opacité
+document.getElementById('opacitySlider').addEventListener('input', (e) => {
+    document.getElementById('app').style.opacity = e.target.value;
+});
+
+// Taille
+document.getElementById('sizeSlider').addEventListener('input', (e) => {
+    document.getElementById('app').style.transform = `scale(${e.target.value})`;
+    document.getElementById('app').style.transformOrigin = 'center center';
+});
+
+// Couleur de fond
+document.getElementById('bgColorPicker').addEventListener('input', (e) => {
+    document.body.style.background = e.target.value;
+});
+
+// Glass Background
+document.getElementById('glassBg').addEventListener('change', (e) => {
+    const app = document.getElementById('app');
+    if (e.target.checked) {
+        app.style.backdropFilter = 'blur(10px)';
+        app.style.background = 'rgba(255,255,255,0.02)';
+    } else {
+        app.style.backdropFilter = 'none';
+        app.style.background = 'rgba(0,0,0,0.8)';
+    }
+});
+
+// === BOUTON RETOUR ===
+document.getElementById('backToHome').addEventListener('click', () => {
+    pauseTimer();
+    mapPage.style.display = 'none';
+    homeScreen.style.display = 'flex';
+    document.body.style.background = '#0a0a1a';
+});
+
+// === METTRE À JOUR LES SCORES ===
+function updateScoreDisplay() {
+    totalScoreEl.textContent = state.totalScore;
+    totalHighScoreEl.textContent = state.highScore;
+}
+
+// === INITIALISATION ===
+document.addEventListener('DOMContentLoaded', () => {
+    renderMaps();
+});
